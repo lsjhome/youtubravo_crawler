@@ -33,23 +33,19 @@ class GenieCrawler(object):
         found = re.findall('\d+', dif)
 
         if len(found) == 0:
-
+            
             if dif == '유지':
-
                 return 0
 
             elif dif == 'new':
-
                 return 'new'
-
+            
         else:
 
-            if '상승' in dif:
-                
+            if '상승' in dif:    
                 return int(found[0])            
             
             elif '하강' in dif:
-            
                 return -int(found[0])
             
                         
