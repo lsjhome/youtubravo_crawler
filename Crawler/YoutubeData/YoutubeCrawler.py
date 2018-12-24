@@ -1,13 +1,22 @@
-from googleapiclient.discovery import build
-import multiprocessing as mp
-
 class YoutubeParser(object):
     
     def __init__(self, api_key, processes=10):
         
         self.api_key = api_key
         self.client = build("youtube", "v3", developerKey=self.api_key)
-        self.processes = processes        
+        self.processes = processes
+        
+    def _remove_empty_kwargs(self, **kwargs):
+
+        good_kwargs = {}
+
+        if kwargs is not None:
+
+            for key, value in kwargs.items():
+                if value:
+                    good_kwargs[key] = value
+
+        return good_kwargs        
         
     def _response(self, resource, **kwargs):
         
@@ -21,7 +30,7 @@ class YoutubeParser(object):
             dict
             
         '''   
-        kwargs = remove_empty_kwargs(**kwargs)
+        kwargs = self._remove_empty_kwargs(**kwargs)
         
         if resource == 'channels':
             response = self.client.channels().list(
@@ -74,7 +83,7 @@ class YoutubeParser(object):
 
         Returns:
             dictionary array: [{'title': channel_title,
-                                'ch_id': channel_id,
+                      chan          'ch_id': channel_id,
                                 'description': channel_description,
                                 'publisehdAt': channel_created_date}]
 
@@ -265,3 +274,62 @@ class YoutubeParser(object):
             vsc_sum.pop(key)
 
         return vsc_sum
+    
+    
+    
+    def channel_video_list_new(self, **kwargs):
+        
+        '''
+        *** Calling multiple channels is not available ***
+        
+        Returns video id(s) by its channel(s)
+        
+        Args:
+            **kwargs: Arbitrary keyword arguments
+            
+        Returns:
+        
+            dict: {'channelId': str, 'videoId': list}
+        
+        '''
+        responses = self._response('channels', **kwargs)
+        
+        ch_uploads_id = [{'ch_id': item['id'], 
+                          'uploads_id': item['contentDetails']['relatedPlaylists']['uploads']} 
+                                                               for item in responses['items']]
+        
+        for element in ch_uploads_id:
+            
+            ch_id = element['ch_id']
+            upload_id = element['uploads_id']
+            
+            next_page_token = ''
+            video_dict_list = []
+            
+            while True:
+            
+                response = self._response('playlistitems', playlistId=upload_id,
+                                                           part='snippet',
+                                                           maxResults=50,
+                                                           pageToken=next_page_token)
+                
+                
+                
+            
+                
+                video_dict = [{'channelId' : item['snippet']['channelId'], 
+                              'videoId': item['snippet']['resourceId']['videoId'],
+                               'title': item['snippet']['title'],
+                               'description': item['snippet']['description'],
+                               'publishedAt': item['snippet']['publishedAt']
+                              } 
+                                                         for item in response['items']]
+                
+                video_dict_list.extend(video_dict)
+                
+                if 'nextPageToken' in response.keys():
+                    next_page_token = response['nextPageToken']
+                
+                else:
+                    
+                    return video_dict_list
