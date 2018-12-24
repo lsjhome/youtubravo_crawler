@@ -74,7 +74,7 @@ class YoutubeParser(object):
 
         Returns:
             dictionary array: [{'title': channel_title,
-                      chan          'ch_id': channel_id,
+                                'ch_id': channel_id,
                                 'description': channel_description,
                                 'publisehdAt': channel_created_date}]
 
