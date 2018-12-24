@@ -1,5 +1,5 @@
 from googleapiclient.discovery import build
-import multiprocessing as mp	
+import multiprocessing as mp
 
 class YoutubeParser(object):
     
@@ -336,3 +336,68 @@ class YoutubeParser(object):
                 else:
                     
                     return video_dict_list
+
+                
+    def _video_info_by_channel(self, ch_id, upload_id):
+
+        next_page_token = ''
+        video_dict_list = []
+
+        while True:
+
+            response = self._response('playlistitems', playlistId=upload_id,
+                                                       part='snippet',
+                                                       maxResults=50,
+                                                       pageToken=next_page_token)
+
+
+
+
+
+            video_dict = [{'channelId' : item['snippet']['channelId'], 
+                          'videoId': item['snippet']['resourceId']['videoId'],
+                           'title': item['snippet']['title'],
+                           'description': item['snippet']['description'],
+                           'publishedAt': item['snippet']['publishedAt']
+                          } 
+                                                     for item in response['items']]
+
+            video_dict_list.extend(video_dict)
+
+            if 'nextPageToken' in response.keys():
+                next_page_token = response['nextPageToken']
+
+            else:
+
+                return {
+                    'ch_id': ch_id,
+                    'upload_id': upload_id,
+                    'video_info_list': video_dict_list
+                }
+            
+    def video_info_by_channels(self, **kwargs):
+    
+        responses = self._response('channels', **kwargs)
+
+        ch_uploads_id = [{'ch_id': item['id'], 
+                          'uploads_id': item['contentDetails']['relatedPlaylists']['uploads']} 
+                                                               for item in responses['items']]
+
+        results = []
+
+        pool = mp.Pool(processes=self.processes)
+
+        for ch_uploads in ch_uploads_id:
+            
+            upload_id = ch_uploads['uploads_id']
+            ch_id = ch_uploads['ch_id']
+    
+            results.append(pool.apply_async(self._video_info_by_channel,
+                                            kwds={
+                                                  'ch_id':ch_id,
+                                                  'upload_id': upload_id
+                                                  }))
+    
+        outputs = [p.get() for p in results]
+        
+        return outputs
