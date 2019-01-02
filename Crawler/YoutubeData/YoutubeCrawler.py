@@ -25,7 +25,6 @@ class YoutubeParser(object):
         
         '''
         Returns youtube client response depeonds on source
-
         Args:
             **kwargs: Arbitrary keyword arguments
             
@@ -61,7 +60,6 @@ class YoutubeParser(object):
 
         '''
         yield n-sized list from list l
-
         args:
             l(list): origianl list to be split
             n(int): number of elements in the split list
@@ -80,16 +78,15 @@ class YoutubeParser(object):
 
         '''
         Returns Channel's introduction and its starting date
-
         Args:
             **kwargs: Arbitrary keyword arguments
-
+            id(str) : channel id, 'UC76iMJWCshR_4TrNHq6nVEw, UCSHVH_AWVUc-C8-D8mh8W6A'
+            part(str): 'snippet'
         Returns:
             dictionary array: [{'title': channel_title,
-                      chan          'ch_id': channel_id,
+                                'ch_id': channel_id,
                                 'description': channel_description,
                                 'publisehdAt': channel_created_date}]
-
         '''
         
         responses = self._response('channels', **kwargs)         
@@ -110,6 +107,8 @@ class YoutubeParser(object):
         
         Args:
             **kwargs: Arbitrary keyword arguments
+            id(str): channel id, 'UCSHVH_AWVUc-C8-D8mh8W6A'
+            part(str): 'statistics'
             
         Returns:
             dictionary array: [{'ch_id': str,
@@ -148,41 +147,6 @@ class YoutubeParser(object):
         
         return result_list
     
-    
-    def channel_video_list(self, **kwargs):
-        
-        '''
-        *** Calling multiple channels is not available ***
-        
-        Returns video id(s) by its channel(s)
-        
-        Args:
-            **kwargs: Arbitrary keyword arguments
-            
-        Returns:
-        
-            dict: {'channelId': str, 'videoId': list}
-        
-        '''
-        
-        next_page_token = ''
-        video_id_list = []
-        
-        while True:
-            
-            response = self._response('search', **kwargs, pageToken=next_page_token)
-            
-            video_ids = [item['id']['videoId'] for item in response['items']
-                         if 'videoId' in item['id'].keys()]
-            
-            video_id_list.extend(video_ids)
-                
-            if 'nextPageToken' in response.keys():
-                next_page_token = response['nextPageToken']
-
-            else:
-                
-                return {'channelId' : kwargs['channelId'], 'videoId' : video_id_list}
             
     def video_statistics(self, **kwargs):
         
@@ -217,25 +181,46 @@ class YoutubeParser(object):
         videos_stats = self.video_statistics(id=id_join, part='statistics')
 
         return videos_stats    
+
     
     def video_statistics_by_channel(self, **kwargs):
-        
-        response = self.channel_video_list(part='id', maxResults=50, **kwargs)
-        
-        video_id_list = response['videoId']
-        
-        video_split_list = self._split_list(video_id_list, 50)
-        
-        pool = mp.Pool(self.processes)
-        
-        results = [pool.apply_async(self._id_to_stats, args=([split])) for split in video_split_list]
-        
-        outputs = []
-        
-        for p in results:
-            outputs.extend(p.get())
-        
-        return outputs
+
+        responses = self.video_info_by_channels(**kwargs)
+
+        ch_video_dict_array = []
+        for response in responses:
+            ch_video_dict = {}
+            ch_id = response['ch_id']
+            video_ids = [item['videoId'] for item in response['video_info_list']]
+            # ch_video_dict[ch_id] = video_ids
+            ch_video_dict['ch_id'] = ch_id
+            ch_video_dict['video_id'] = video_ids
+            ch_video_dict_array.append(ch_video_dict)
+
+        ch_video_info_array = []
+
+        for ch_video_dict in ch_video_dict_array:
+            ch_id = ch_video_dict['ch_id']
+            video_split_list = _split_list(self, ch_video_dict['video_id'], 50)
+
+            pool = mp.Pool(10)
+
+            results = [pool.apply_async(self._id_to_stats, args=([split])) 
+                       for split in video_split_list]
+
+            outputs = []
+
+            for p in results:
+                outputs.extend(p.get())
+
+            ch_videos_stats = {}
+            ch_videos_stats['ch_id'] = ch_id
+            ch_videos_stats['video_stats'] = outputs
+
+            ch_video_info_array.append(ch_videos_stats)
+
+
+        return ch_video_info_array
 
     def statistics_sum(self, *args):
         
@@ -277,65 +262,7 @@ class YoutubeParser(object):
             vsc_sum.pop(key)
 
         return vsc_sum
-    
-    
-    
-    def channel_video_list_new(self, **kwargs):
-        
-        '''
-        *** Calling multiple channels is not available ***
-        
-        Returns video id(s) by its channel(s)
-        
-        Args:
-            **kwargs: Arbitrary keyword arguments
-            
-        Returns:
-        
-            dict: {'channelId': str, 'videoId': list}
-        
-        '''
-        responses = self._response('channels', **kwargs)
-        
-        ch_uploads_id = [{'ch_id': item['id'], 
-                          'uploads_id': item['contentDetails']['relatedPlaylists']['uploads']} 
-                                                               for item in responses['items']]
-        
-        for element in ch_uploads_id:
-            
-            ch_id = element['ch_id']
-            upload_id = element['uploads_id']
-            
-            next_page_token = ''
-            video_dict_list = []
-            
-            while True:
-            
-                response = self._response('playlistitems', playlistId=upload_id,
-                                                           part='snippet',
-                                                           maxResults=50,
-                                                           pageToken=next_page_token)
-                
-                
-                
-            
-                
-                video_dict = [{'channelId' : item['snippet']['channelId'], 
-                              'videoId': item['snippet']['resourceId']['videoId'],
-                               'title': item['snippet']['title'],
-                               'description': item['snippet']['description'],
-                               'publishedAt': item['snippet']['publishedAt']
-                              } 
-                                                         for item in response['items']]
-                
-                video_dict_list.extend(video_dict)
-                
-                if 'nextPageToken' in response.keys():
-                    next_page_token = response['nextPageToken']
-                
-                else:
-                    
-                    return video_dict_list
+   
 
                 
     def _video_info_by_channel(self, ch_id, upload_id):
