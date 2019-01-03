@@ -1,5 +1,10 @@
-from googleapiclient.discovery import build
+import logging
 import multiprocessing as mp
+
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+logger = logging.getLogger(__name__)
 
 class YoutubeParser(object):
     
@@ -34,25 +39,35 @@ class YoutubeParser(object):
         '''   
         kwargs = self._remove_empty_kwargs(**kwargs)
         
-        if resource == 'channels':
-            response = self.client.channels().list(
-            **kwargs
-            ).execute()
-            
-        if resource == 'search':
-            response = self.client.search().list(
-            **kwargs
-            ).execute()
-            
-        if resource == 'videos':
-            response = self.client.videos().list(
-            **kwargs
-            ).execute()
-            
-        if resource == 'playlistitems':
-            response = self.client.playlistItems().list(
-            **kwargs
-            ).execute()
+        response = None
+        
+        while not response:
+        
+            try:
+
+                if resource == 'channels':
+                    response = self.client.channels().list(
+                    **kwargs
+                    ).execute()
+
+                if resource == 'search':
+                    response = self.client.search().list(
+                    **kwargs
+                    ).execute()
+
+                if resource == 'videos':
+                    response = self.client.videos().list(
+                    **kwargs
+                    ).execute()
+
+                if resource == 'playlistitems':
+                    response = self.client.playlistItems().list(
+                    **kwargs
+                    ).execute()
+
+            except HttpError as e:
+                logger.error("%s" % e)
+                pass
         
         return response
     
@@ -311,7 +326,6 @@ class YoutubeParser(object):
         ch_uploads_id = [{'ch_id': item['id'], 
                           'uploads_id': item['contentDetails']['relatedPlaylists']['uploads']} 
                                                                for item in responses['items']]
-
         results = []
 
         pool = mp.Pool(processes=self.processes)
