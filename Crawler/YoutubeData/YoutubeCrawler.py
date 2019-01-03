@@ -94,7 +94,8 @@ class YoutubeParser(object):
         desc_date_list = [{'title': response['snippet']['title'],
                            'ch_id': response['id'],
                            'description':response['snippet']['description'],
-                           'publishedAt':response['snippet']['publishedAt'][:10]} 
+                           'publishedAt':response['snippet']['publishedAt'][:10],
+                           'thumbnails':response['snippet']['thumbnails']} 
                             
                             for response in responses['items']]
         
@@ -285,7 +286,8 @@ class YoutubeParser(object):
                           'videoId': item['snippet']['resourceId']['videoId'],
                            'title': item['snippet']['title'],
                            'description': item['snippet']['description'],
-                           'publishedAt': item['snippet']['publishedAt']
+                           'publishedAt': item['snippet']['publishedAt'],
+                           'thumbnails':item['snippet']['thumbnails']
                           } 
                                                      for item in response['items']]
 
