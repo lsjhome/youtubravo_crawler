@@ -202,7 +202,7 @@ class YoutubeParser(object):
 
         for ch_video_dict in ch_video_dict_array:
             ch_id = ch_video_dict['ch_id']
-            video_split_list = _split_list(self, ch_video_dict['video_id'], 50)
+            video_split_list = self._split_list(ch_video_dict['video_id'], 50)
 
             pool = mp.Pool(10)
 
