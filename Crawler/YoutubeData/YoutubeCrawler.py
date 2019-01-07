@@ -1,18 +1,20 @@
 import logging
-import multiprocessing as mp
+from multiprocessing.pool import ThreadPool
+from multiprocessing import Pool
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 logger = logging.getLogger(__name__)
 
-class YoutubeParser(object):
+class YoutubeParser_02(object):
     
-    def __init__(self, api_key, processes=10):
+    def __init__(self, api_key, processes=10, thread=False):
         
         self.api_key = api_key
         self.client = build("youtube", "v3", developerKey=self.api_key)
         self.processes = processes
+        self.thread = thread
         
     def _remove_empty_kwargs(self, **kwargs):
 
@@ -208,30 +210,29 @@ class YoutubeParser(object):
             ch_video_dict = {}
             ch_id = response['ch_id']
             video_ids = [item['videoId'] for item in response['video_info_list']]
-            # ch_video_dict[ch_id] = video_ids
             ch_video_dict['ch_id'] = ch_id
             ch_video_dict['video_id'] = video_ids
             ch_video_dict_array.append(ch_video_dict)
 
         ch_video_info_array = []
+        
+        
+        pool = Pool(self.processes)
+        
+        if self.thread:
+
+            pool = ThreadPool(self.processes)
 
         for ch_video_dict in ch_video_dict_array:
             ch_id = ch_video_dict['ch_id']
             video_split_list = self._split_list(ch_video_dict['video_id'], 50)
 
-            pool = mp.Pool(10)
-
-            results = [pool.apply_async(self._id_to_stats, args=([split])) 
+            results = [pool.apply_async(self._id_to_stats, args=([split])).get() 
                        for split in video_split_list]
-
-            outputs = []
-
-            for p in results:
-                outputs.extend(p.get())
 
             ch_videos_stats = {}
             ch_videos_stats['ch_id'] = ch_id
-            ch_videos_stats['video_stats'] = outputs
+            ch_videos_stats['video_stats'] = results
 
             ch_video_info_array.append(ch_videos_stats)
 
@@ -327,20 +328,23 @@ class YoutubeParser(object):
                           'uploads_id': item['contentDetails']['relatedPlaylists']['uploads']} 
                                                                for item in responses['items']]
         results = []
+        
+        pool = Pool(self.processes)
+        
+        if self.thread:
 
-        pool = mp.Pool(processes=self.processes)
-
+            pool = ThreadPool(self.processes)
+            
         for ch_uploads in ch_uploads_id:
             
             upload_id = ch_uploads['uploads_id']
             ch_id = ch_uploads['ch_id']
     
-            results.append(pool.apply_async(self._video_info_by_channel,
+            ready = pool.apply_async(self._video_info_by_channel,
                                             kwds={
                                                   'ch_id':ch_id,
                                                   'upload_id': upload_id
-                                                  }))
-    
-        outputs = [p.get() for p in results]
+                                                  })
+            results.append(ready.get())
         
-        return outputs
+        return results
