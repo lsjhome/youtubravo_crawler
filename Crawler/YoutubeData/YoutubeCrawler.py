@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 
 class YoutubeParser_02(object):
     
-    def __init__(self, api_key, processes=10, thread=False):
+    def __init__(self, api_key_list, processes=10, thread=False):
         
-        self.api_key = api_key
-        self.client = build("youtube", "v3", developerKey=self.api_key)
+        self.api_key_iter = iter(api_key_list)
+        self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
         self.processes = processes
         self.thread = thread
         
@@ -69,6 +69,8 @@ class YoutubeParser_02(object):
 
             except HttpError as e:
                 logger.error("%s" % e)
+                if e.resp.status == 403:
+                    self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
                 pass
         
         return response
@@ -215,8 +217,7 @@ class YoutubeParser_02(object):
             ch_video_dict_array.append(ch_video_dict)
 
         ch_video_info_array = []
-        
-        
+                
         pool = Pool(self.processes)
         
         if self.thread:
@@ -235,8 +236,7 @@ class YoutubeParser_02(object):
             ch_videos_stats['video_stats'] = results
 
             ch_video_info_array.append(ch_videos_stats)
-
-
+            
         return ch_video_info_array
 
     def statistics_sum(self, *args):
