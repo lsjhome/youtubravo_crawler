@@ -164,10 +164,15 @@ class YoutubeCrawler(object):
                 sub_view_ratio = None
 
             else:
+
                 subscriber_count = int(statistics_response['subscriberCount'])
-                view_count = int(statistics_response['viewCount'])
-                video_count = int(statistics_response['videoCount'])
-                sub_view_ratio = view_count / subscriber_count
+                try:
+                    sub_view_ratio = view_count / subscriber_count
+                except ZeroDivisionError:
+                    sub_view_ratio = None
+
+            view_count = int(statistics_response['viewCount'])
+            video_count = int(statistics_response['videoCount'])
 
             result_list.append({'ch_id': ch_id, 'subscriberCount': subscriber_count,
                                 'viewCount': view_count, 'videoCount': video_count,
