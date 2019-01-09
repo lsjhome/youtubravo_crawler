@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 class YoutubeCrawler(object):
+    """
+    Youtube data crawler based on Youtube Data Api v3
+
+    """
 
     def __init__(self, api_key_list, processes=10, thread=False):
         """
@@ -160,19 +164,19 @@ class YoutubeCrawler(object):
             if statistics_response['hiddenSubscriberCount'] is True:
 
                 subscriber_count = None
-
                 sub_view_ratio = None
+                view_count = int(statistics_response['viewCount'])
+                video_count = int(statistics_response['videoCount'])
 
             else:
-
+                
                 subscriber_count = int(statistics_response['subscriberCount'])
+                view_count = int(statistics_response['viewCount'])
+                video_count = int(statistics_response['videoCount'])
                 try:
                     sub_view_ratio = view_count / subscriber_count
                 except ZeroDivisionError:
                     sub_view_ratio = None
-
-            view_count = int(statistics_response['viewCount'])
-            video_count = int(statistics_response['videoCount'])
 
             result_list.append({'ch_id': ch_id, 'subscriberCount': subscriber_count,
                                 'viewCount': view_count, 'videoCount': video_count,
@@ -256,7 +260,7 @@ class YoutubeCrawler(object):
                                    'publishedAt': video published time,
                                    'thumbnails': video thumbnail_urls
                                    }, ...]}, ...]
-            
+
         """
 
         responses = self._response('channels', part='contentDetails', id=id)
