@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime, timedelta, timezone
+from dateutil.parser import parse
 from multiprocessing.pool import ThreadPool
 from multiprocessing import Pool
 
@@ -185,12 +187,14 @@ class YoutubeCrawler(object):
 
         return result_list
 
-    def _video_desc(self, ch_id, upload_id):
+    def _video_desc(self, ch_id, upload_id, update, days):
         """video description list given by an upload id
 
         Args:
             ch_id(str): channel_id
             upload_id(str): upload_id
+            update(bool): True if requesting video data created after N days ago
+            days(int): N days
 
         Returns:
             dict
@@ -228,6 +232,23 @@ class YoutubeCrawler(object):
 
             video_dict_list.extend(video_dict)
 
+            # update를 위한 경우
+            if update is True:
+
+                vid_pub_at = video_dict[-1]['publishedAt']
+
+                vid_pub_at_dt = parse(vid_pub_at)
+
+                utc_now = datetime.now(timezone.utc)
+                stdd = utc_now - timedelta(days=days + 1)
+
+                if vid_pub_at_dt < stdd:
+                    return {
+                        'ch_id': ch_id,
+                        'upload_id': upload_id,
+                        'video_info_list': video_dict_list
+                    }
+
             if 'nextPageToken' in response.keys():
                 next_page_token = response['nextPageToken']
 
@@ -239,13 +260,15 @@ class YoutubeCrawler(object):
                     'video_info_list': video_dict_list
                 }
 
-    def channel_video_desc(self, id=None):
+    def channel_video_desc(self, id=None, update=False, days=0):
         """video description list given by channel ids
 
         channel ids => upload ids => MultiThreading => video description list by upload ids
 
         Args:
              id(str): channel_id
+             update(bool): True if requesting video data created after N days ago
+             days(int): N days
 
         Returns:
             list: dictionary array
@@ -283,7 +306,9 @@ class YoutubeCrawler(object):
             ready = pool.apply_async(self._video_desc,
                                      kwds={
                                          'ch_id': ch_id,
-                                         'upload_id': upload_id
+                                         'upload_id': upload_id,
+                                         'update': update,
+                                         'days': days
                                      })
             results.append(ready.get())
 
