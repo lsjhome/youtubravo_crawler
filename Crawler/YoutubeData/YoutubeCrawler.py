@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 class YoutubeCrawler(object):
     """
     Youtube data crawler based on Youtube Data Api v3
-
     """
 
     def __init__(self, api_key_list, processes=10, thread=False):
@@ -22,7 +21,6 @@ class YoutubeCrawler(object):
             api_key_list (list): developer key list
             processes(int): the number of processes
             thread(bool): Thread use True instead of Process, default False
-
         """
         self.api_key_iter = iter(api_key_list)
         self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
@@ -47,10 +45,8 @@ class YoutubeCrawler(object):
         Args:
             resource(str): youtube client method resource
             **kwargs: Arbitrary keyword arguments.
-
         Returns:
             dict: response in dictionary form
-
         """
         kwargs = self._remove_empty_kwargs(**kwargs)
 
@@ -94,10 +90,8 @@ class YoutubeCrawler(object):
         Args:
             l(list): original list to be split
             n(int): split size
-
         Returns:
             list: n-sized list from list l
-
         """
         split_list = []
 
@@ -108,20 +102,16 @@ class YoutubeCrawler(object):
 
     def channel_desc(self, id=None):
         """Channel description method
-
         Args:
             id(str): channel_id
-
         Returns:
             list: dictionary array
-
         Examples:
             >>> channel_description(id=channel_id)
             [{'title': channel_title,
             'ch_id': channel_id,
             'description': channel_description,
              'publisehdAt': channel_created_date}, ...]
-
         """
         responses = self._response('channels', part='snippet', id=id)
 
@@ -137,13 +127,10 @@ class YoutubeCrawler(object):
 
     def channel_countstats(self, id=None):
         """Channel count statistics method
-
         Args:
             id(str): channel_id
-
         Returns:
             list: dictionary array
-
         Examples:
             >>> channel_countstats(id=channel_id)
             [{'ch_id': str,
@@ -151,7 +138,6 @@ class YoutubeCrawler(object):
             'viewCount': int,
             'videoCount': int,
             'sub_view_ratio': float;None}, ...]
-
         """
         responses = self._response('channels', part='statistics', id=id)
 
@@ -189,16 +175,13 @@ class YoutubeCrawler(object):
 
     def _video_desc(self, ch_id, upload_id, update, days):
         """video description list given by an upload id
-
         Args:
             ch_id(str): channel_id
             upload_id(str): upload_id
             update(bool): True if requesting video data created after N days ago
             days(int): N days
-
         Returns:
             dict
-
         Examples:
             >>> _video_desc(ch_id, upload_id)
             {'ch_id': channel_id,
@@ -209,7 +192,6 @@ class YoutubeCrawler(object):
                                   'description': video description,
                                   'publishedAt': video published time,
                                   'thumbnails': video thumbnail_urls}, ...]}
-
         """
         next_page_token = ''
         video_dict_list = []
@@ -234,15 +216,23 @@ class YoutubeCrawler(object):
 
             # update를 위한 경우
             if update is True:
+                
+                try: 
 
-                vid_pub_at = video_dict[-1]['publishedAt']
+                    vid_pub_at = video_dict[-1]['publishedAt']
 
-                vid_pub_at_dt = parse(vid_pub_at)
+                    vid_pub_at_dt = parse(vid_pub_at)
 
-                utc_now = datetime.now(timezone.utc)
-                stdd = utc_now - timedelta(days=days + 1)
+                    utc_now = datetime.now(timezone.utc)
+                    stdd = utc_now - timedelta(days=days + 1)
 
-                if vid_pub_at_dt < stdd:
+                    if vid_pub_at_dt < stdd:
+                        return {
+                            'ch_id': ch_id,
+                            'upload_id': upload_id,
+                            'video_info_list': video_dict_list
+                        }
+                except IndexError:
                     return {
                         'ch_id': ch_id,
                         'upload_id': upload_id,
@@ -262,17 +252,13 @@ class YoutubeCrawler(object):
 
     def channel_video_desc(self, id=None, update=False, days=0):
         """video description list given by channel ids
-
         channel ids => upload ids => MultiThreading => video description list by upload ids
-
         Args:
              id(str): channel_id
              update(bool): True if requesting video data created after N days ago
              days(int): N days
-
         Returns:
             list: dictionary array
-
         Examples:
             >>>channel_video_desc(id=channel_id)
             [{'ch_id': channel_id,
@@ -284,7 +270,6 @@ class YoutubeCrawler(object):
                                    'publishedAt': video published time,
                                    'thumbnails': video thumbnail_urls
                                    }, ...]}, ...]
-
         """
 
         responses = self._response('channels', part='contentDetails', id=id)
@@ -318,10 +303,8 @@ class YoutubeCrawler(object):
 
         '''
         Returns video statistics by its respective id
-
         Args:
             **kwargs: Arbitrary keyword arguments
-
         Returns:
             dictionary array: [{'videoId':id_video, 'statistics': video_statistics}, ..]
         '''
@@ -386,15 +369,11 @@ class YoutubeCrawler(object):
 
         '''
         Returns the sum of values from video statistics dictionary array
-
         Args:
             *args: Arbitrary keyword arguments
             Dictionary array with key named 'statistics' and its value in dictionary
-
         Returns:
-
             dict: the sum of statistics
-
         '''
 
         vsc_sum = {}
