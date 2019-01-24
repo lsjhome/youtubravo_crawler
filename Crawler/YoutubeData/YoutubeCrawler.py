@@ -73,6 +73,11 @@ class YoutubeCrawler(object):
                     response = self.client.playlistItems().list(
                         **kwargs
                     ).execute()
+                    
+                if resource == 'videocategories':
+                    response = self.client.videoCategories().list(
+                        **kwargs
+                    ).execute()
 
             except HttpError as e:
                 logger.error("%s" % e)
@@ -395,3 +400,80 @@ class YoutubeCrawler(object):
             vsc_sum.pop(key)
 
         return vsc_sum
+    
+    def _video_most_popular(self, rc, cid=0):
+        
+        pt = ''
+        
+        dict_array = []
+        
+        while True:
+            
+            responses = self._response('videos', part='snippet', chart='mostPopular', 
+                                       regionCode=rc, pageToken=pt, maxResults=50,
+                                       videoCategoryId=cid)
+            
+            for item in responses['items']:
+                
+                videoId = item['id']
+                published_at = item['snippet']['publishedAt']
+                channelId = item['snippet']['channelId']
+                vid_title = item['snippet']['title']
+                vid_description = item['snippet']['description']
+                vid_th = item['snippet']['thumbnails']
+                ch_title = item['snippet']['channelTitle']
+                
+                if 'tags' in item['snippet'].keys():
+                    vid_tags = ','.join(item['snippet']['tags'])
+                    
+                else:
+                    vid_tags = ''
+                    
+                categoryId = item['snippet']['categoryId']
+                
+                vid_dict = {'vid_id': videoId, 'vid_published_at': published_at,
+                            'ch_id': channelId, 'vid_title': vid_title,
+                            'vid_description': vid_description, 'vid_th': vid_th,
+                            'ch_title': ch_title, 'vid_tags': vid_tags,
+                            'vid_cat_id': categoryId, 'region_code':rc
+                           }
+                
+                dict_array.append(vid_dict)
+
+            if 'nextPageToken' not in responses.keys():
+                
+                return dict_array
+            
+            else:
+                
+                pt = responses['nextPageToken']
+                
+    def video_most_popular(self, rc='KR', top=True):
+        
+        responses = self._response('videocategories', regionCode=rc, part='snippet')
+        
+        cat_id_list = {item['id']:item['snippet']['title'] 
+                       for item in responses['items'] if item['snippet']['assignable'] is True}
+        
+        cat_id_list['0'] = 'ALL'
+        
+        pool = Pool(self.processes)
+        
+        results = deque()
+        
+        if top is True:
+            
+            most_popular = self._video_most_popular(rc=rc, cid=0)
+            return most_popular
+        
+        else:
+        
+            for cat_id in cat_id_list:
+
+                ready = pool.apply_async(self._video_most_popular, 
+                                         kwds={'rc':rc,'cid':cat_id})
+                results.append(ready)
+                    
+            outputs = [p.get() for p in results]
+        
+            return outputs
