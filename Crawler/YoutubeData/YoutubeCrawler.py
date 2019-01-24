@@ -464,6 +464,7 @@ class YoutubeCrawler(object):
         if top is True:
             
             most_popular = self._video_most_popular(rc=rc, cid=0)
+            
             return most_popular
         
         else:
@@ -475,5 +476,7 @@ class YoutubeCrawler(object):
                 results.append(ready)
                     
             outputs = [p.get() for p in results]
-        
+            
+            outputs = [elem for elements in outputs for elem in elements]
+            
             return outputs
