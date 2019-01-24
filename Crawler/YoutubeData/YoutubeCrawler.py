@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse
-from multiprocessing.pool import ThreadPool
 from multiprocessing import Pool
 
 from googleapiclient.discovery import build
@@ -15,7 +14,7 @@ class YoutubeCrawler(object):
     Youtube data crawler based on Youtube Data Api v3
     """
 
-    def __init__(self, api_key_list, processes=10, thread=False):
+    def __init__(self, api_key_list, processes=10):
         """
         Args:
             api_key_list (list): developer key list
@@ -25,7 +24,6 @@ class YoutubeCrawler(object):
         self.api_key_iter = iter(api_key_list)
         self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
         self.processes = processes
-        self.thread = thread
 
     @staticmethod
     def _remove_empty_kwargs(**kwargs):
@@ -277,12 +275,9 @@ class YoutubeCrawler(object):
         ch_uploads_id = [{'ch_id': item['id'],
                           'uploads_id': item['contentDetails']['relatedPlaylists']['uploads']}
                          for item in responses['items']]
-        results = []
+        results = deque()
 
         pool = Pool(self.processes)
-
-        if self.thread:
-            pool = ThreadPool(self.processes)
 
         for ch_uploads in ch_uploads_id:
             upload_id = ch_uploads['uploads_id']
@@ -295,9 +290,11 @@ class YoutubeCrawler(object):
                                          'update': update,
                                          'days': days
                                      })
-            results.append(ready.get())
+            results.append(ready)
+        
+        outputs = [p.get() for p in results]
 
-        return results
+        return outputs
 
     def video_statistics(self, **kwargs):
 
@@ -346,9 +343,6 @@ class YoutubeCrawler(object):
         ch_video_info_array = []
 
         pool = Pool(self.processes)
-
-        if self.thread:
-            pool = ThreadPool(self.processes)
 
         for ch_video_dict in ch_video_dict_array:
             ch_id = ch_video_dict['ch_id']
