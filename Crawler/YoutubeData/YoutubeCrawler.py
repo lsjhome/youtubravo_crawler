@@ -74,7 +74,7 @@ class YoutubeCrawler(object):
                     response = self.client.playlistItems().list(
                         **kwargs
                     ).execute()
-                    
+
                 if resource == 'videocategories':
                     response = self.client.videoCategories().list(
                         **kwargs
@@ -220,8 +220,8 @@ class YoutubeCrawler(object):
 
             # update를 위한 경우
             if update is True:
-                
-                try: 
+
+                try:
 
                     vid_pub_at = video_dict[-1]['publishedAt']
 
@@ -297,7 +297,7 @@ class YoutubeCrawler(object):
                                          'days': days
                                      })
             results.append(ready)
-        
+
         outputs = [p.get() for p in results]
 
         return outputs
@@ -401,21 +401,34 @@ class YoutubeCrawler(object):
             vsc_sum.pop(key)
 
         return vsc_sum
-    
-    def _video_most_popular(self, rc, cid=0):
-        
+
+    def _video_trend(self, rc, cid=0):
+        """trending video list given by region code and category id
+        Args:
+             rc(str): region code, 2 Characters
+             cid(int): youtube video category code
+        Returns:
+            list: dictionary array
+        Examples:
+            >>>_video_trend(rc='KR', cid=0)
+            [{'vid_id': videoId, 'vid_published_at': published_at,
+              'ch_id': channelId, 'vid_title': vid_title, 'vid_desc': vid_description,
+              'vid_th': vid_th, 'ch_title': ch_title, 'vid_tags': vid_tags,
+               'vid_cat_id': categoryId, 'region_code': rc, 'vid_rank': rank,'vid_trend_cat': cid
+              }, ...]
+        """
         pt = ''
-        
         dict_array = deque()
-        
+        rank = 1
+
         while True:
-            
-            responses = self._response('videos', part='snippet', chart='mostPopular', 
+
+            responses = self._response('videos', part='snippet', chart='mostPopular',
                                        regionCode=rc, pageToken=pt, maxResults=50,
                                        videoCategoryId=cid)
-            
+
             for item in responses['items']:
-                
+
                 videoId = item['id']
                 published_at = item['snippet']['publishedAt']
                 channelId = item['snippet']['channelId']
@@ -423,70 +436,83 @@ class YoutubeCrawler(object):
                 vid_description = item['snippet']['description']
                 vid_th = item['snippet']['thumbnails']
                 ch_title = item['snippet']['channelTitle']
-                
+
                 if 'tags' in item['snippet'].keys():
                     vid_tags = ','.join(item['snippet']['tags'])
-                    
+
                 else:
                     vid_tags = ''
-                    
+
                 categoryId = item['snippet']['categoryId']
-                
+
                 vid_dict = {'vid_id': videoId, 'vid_published_at': published_at,
                             'ch_id': channelId, 'vid_title': vid_title,
                             'vid_desc': vid_description, 'vid_th': vid_th,
                             'ch_title': ch_title, 'vid_tags': vid_tags,
-                            'vid_cat_id': categoryId, 'region_code':rc
-                           }
-                
+                            'vid_cat_id': categoryId, 'region_code': rc, 'vid_rank': rank,
+                            'vid_trend_cat': cid
+                            }
+                rank += 1
                 dict_array.append(vid_dict)
 
             if 'nextPageToken' not in responses.keys():
-                
+
                 return dict_array
-            
+
             else:
-                
+
                 pt = responses['nextPageToken']
-                
-    def video_most_popular(self, rc='KR', top=True):
-        
+
+    def video_trend(self, rc='KR', top=True):
+        """trending video list given by region code and category id
+        Args:
+             rc(str): region code, 2 Characters
+             top(bool): Default True, True if want only top 200 video
+                        False if want all possible category popular video
+        Returns:
+            list: dictionary array
+        Examples:
+            >>>video_trend(rc='KR', cid=0, top=True)
+            [{'vid_id': videoId, 'vid_published_at': published_at,
+              'ch_id': channelId, 'vid_title': vid_title, 'vid_desc': vid_description,
+              'vid_th': vid_th, 'ch_title': ch_title, 'vid_tags': vid_tags,
+               'vid_cat_id': categoryId, 'region_code': rc, 'vid_rank': rank,'vid_trend_cat': cid
+              }, ...]
+        """
         responses = self._response('videocategories', regionCode='US', part='snippet')
-        
-        cat_id_list = {item['id']:item['snippet']['title'] 
+
+        cat_id_list = {item['id']: item['snippet']['title']
                        for item in responses['items'] if item['snippet']['assignable'] is True}
-        
-        cat_id_tot_list = {item['id']:item['snippet']['title'] for item in responses['items']}
-        
-        
+
+        cat_id_tot_list = {item['id']: item['snippet']['title'] for item in responses['items']}
+
         cat_id_list['0'] = 'ALL'
-        
+
         pool = Pool(self.processes)
-        
+
         if top is True:
-            
-            most_popular_video_list = self._video_most_popular(rc=rc, cid=0)
-            
+
+            most_popular_video_list = self._video_trend(rc=rc, cid=0)
+
             for most_popular_video in most_popular_video_list:
                 most_popular_video['vid_cat'] = cat_id_tot_list[most_popular_video['vid_cat_id']]
-            
-            return most_popular_video_list
-        
-        else:
-            
-            results = deque()
-        
-            for cat_id in cat_id_list:
 
-                ready = pool.apply_async(self._video_most_popular, 
-                                         kwds={'rc':rc,'cid':cat_id})
+            return most_popular_video_list
+
+        else:
+
+            results = deque()
+
+            for cat_id in cat_id_list:
+                ready = pool.apply_async(self._video_trend,
+                                         kwds={'rc': rc, 'cid': cat_id})
                 results.append(ready)
-                    
+
             outputs = [p.get() for p in results]
-            
+
             outputs = [elem for elements in outputs for elem in elements]
-            
+
             for output in outputs:
                 output['vid_cat'] = cat_id_tot_list[output['vid_cat_id']]
-                
+
             return outputs
