@@ -434,7 +434,7 @@ class YoutubeCrawler(object):
                 
                 vid_dict = {'vid_id': videoId, 'vid_published_at': published_at,
                             'ch_id': channelId, 'vid_title': vid_title,
-                            'vid_description': vid_description, 'vid_th': vid_th,
+                            'vid_desc': vid_description, 'vid_th': vid_th,
                             'ch_title': ch_title, 'vid_tags': vid_tags,
                             'vid_cat_id': categoryId, 'region_code':rc
                            }
