@@ -302,6 +302,43 @@ class YoutubeCrawler(object):
 
         return outputs
 
+    def statistics_sum(self, *args):
+
+        '''
+        Returns the sum of values from video statistics dictionary array
+        Args:
+            *args: Arbitrary keyword arguments
+            Dictionary array with key named 'statistics' and its value in dictionary
+        Returns:
+            dict: the sum of statistics
+        '''
+
+        vsc_sum = {}
+
+        for vs in vsc:
+
+            vs_stat = vs['statistics']
+            keys = vs_stat.keys()
+
+            for key in keys:
+
+                if vs['statistics'][key].isdigit():
+
+                    if key in vsc_sum.keys():
+
+                        vsc_sum[key] += int(vs['statistics'][key])
+
+                    else:
+                        vsc_sum[key] = int(vs['statistics'][key])
+
+        old_keys = [key for key in vsc_sum.keys()]
+
+        for key in old_keys:
+            vsc_sum[key + '_sum'] = vsc_sum[key]
+            vsc_sum.pop(key)
+
+        return vsc_sum
+
     def _video_trend(self, rc, cid=0):
         """trending video list given by region code and category id
         Args:
@@ -416,59 +453,59 @@ class YoutubeCrawler(object):
                 output['vid_cat'] = cat_id_tot_list[output['vid_cat_id']]
 
             return outputs
+        
+        
+    def _video_stats(self, vid, **kwargs):
 
-    def _video_stats(self, vid):
-        """Video Statistics by video id(s)
+        '''
+        Returns video statistics by its respective id
         Args:
-             vid(str): Youtube video id(s), maximum 50 ids possible
+            **kwargs: Arbitrary keyword arguments
         Returns:
-            deque: dictionary array
-        Examples:
-            >>>_video_stats(vid=''_S64IMfIod8,_s66WPKCEd8, ...')
-                deque([{'viewCount': '17133', 'likeCount': '83', 'dislikeCount': '0',
-                        'favoriteCount': '0', 'commentCount': '45', 'vid_id': '_S64IMfIod8'},
-                        {'viewCount': '23', 'likeCount': '0', 'dislikeCount': '0',
-                        'favoriteCount': '0', 'commentCount': '0', 'vid_id': '_s66WPKCEd8'}, ...])
-        """
-        responses = self._response('videos', id=vid, part='statistics')
+            dictionary array: [{'videoId':id_video, 'statistics': video_statistics}, ..]
+        '''
 
+        responses = self._response('videos', id=vid, part='statistics', **kwargs)
+        
         vid_stats_dict_list = deque()
-
+        
+        key_require = set(['viewCount', 'likeCount', 'dislikeCount', 'favoriteCount', 'commentCount'])
+        
         for item in responses['items']:
+            
             vid_stats_dict = item['statistics']
+            
+            key_has = set(item['statistics'].keys())
+            empty_keys = key_require - key_has
+            
+            # if there is any empty key
+            if empty_keys:
+                for key in empty_keys:
+                    vid_stats_dict[key] = None
+                    
             vid_stats_dict['vid_id'] = item['id']
             vid_stats_dict_list.append(vid_stats_dict)
-
+            
         return vid_stats_dict_list
-
+    
+    
     def video_stats(self, vids):
-        """Video Statistics by video id(s)
-        video ids => split into list that has 50 vids elements as string => Multiprocessing
-        Args:
-             vids(str): Youtube video id(s), no length limit
-        Returns:
-            deque: dictionary array
-        Examples:
-            >>>video_stats(vid=''_S64IMfIod8,_s66WPKCEd8, ...')
-                deque([{'viewCount': '17133', 'likeCount': '83', 'dislikeCount': '0',
-                        'favoriteCount': '0', 'commentCount': '45', 'vid_id': '_S64IMfIod8'},
-                        {'viewCount': '23', 'likeCount': '0', 'dislikeCount': '0',
-                        'favoriteCount': '0', 'commentCount': '0', 'vid_id': '_s66WPKCEd8'}, ...])
-        """
+        
         vid_list = vids.split(',')
-
+        
         vid_split_list = self._split_list(vid_list, 50)
-
+        
         vid_split_list_50 = [','.join(item) for item in vid_split_list]
-
+        
         pool = Pool(self.processes)
-
-        results = [pool.apply_async(self._video_stats, kwds={'vid': id_join_50})
-                   for id_join_50 in vid_split_list_50]
-
+        
+        results = [pool.apply_async(self._video_stats, kwds={'vid': id_join_50}) 
+                                            for id_join_50 in vid_split_list_50]
+        
         outputs = deque()
-
+        
         for p in results:
+            
             outputs.extend(p.get())
-
+        
         return outputs
