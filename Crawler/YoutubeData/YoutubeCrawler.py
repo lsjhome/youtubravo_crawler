@@ -302,43 +302,6 @@ class YoutubeCrawler(object):
 
         return outputs
 
-    def statistics_sum(self, *args):
-
-        '''
-        Returns the sum of values from video statistics dictionary array
-        Args:
-            *args: Arbitrary keyword arguments
-            Dictionary array with key named 'statistics' and its value in dictionary
-        Returns:
-            dict: the sum of statistics
-        '''
-
-        vsc_sum = {}
-
-        for vs in vsc:
-
-            vs_stat = vs['statistics']
-            keys = vs_stat.keys()
-
-            for key in keys:
-
-                if vs['statistics'][key].isdigit():
-
-                    if key in vsc_sum.keys():
-
-                        vsc_sum[key] += int(vs['statistics'][key])
-
-                    else:
-                        vsc_sum[key] = int(vs['statistics'][key])
-
-        old_keys = [key for key in vsc_sum.keys()]
-
-        for key in old_keys:
-            vsc_sum[key + '_sum'] = vsc_sum[key]
-            vsc_sum.pop(key)
-
-        return vsc_sum
-
     def _video_trend(self, rc, cid=0):
         """trending video list given by region code and category id
         Args:
@@ -454,17 +417,19 @@ class YoutubeCrawler(object):
 
             return outputs
         
-        
     def _video_stats(self, vid, **kwargs):
-
-        '''
-        Returns video statistics by its respective id
+        """Video Statistics by video id(s)
         Args:
-            **kwargs: Arbitrary keyword arguments
+             vid(str): Youtube video id(s), maximum 50 ids possible
         Returns:
-            dictionary array: [{'videoId':id_video, 'statistics': video_statistics}, ..]
-        '''
-
+            deque: dictionary array
+        Examples:
+            >>>_video_stats(vid=''_S64IMfIod8,_s66WPKCEd8, ...')
+                deque([{'viewCount': '17133', 'likeCount': '83', 'dislikeCount': '0',
+                        'favoriteCount': '0', 'commentCount': '45', 'vid_id': '_S64IMfIod8'},
+                        {'viewCount': '23', 'likeCount': '0', 'dislikeCount': '0',
+                        'favoriteCount': '0', 'commentCount': '0', 'vid_id': '_s66WPKCEd8'}, ...])
+        """
         responses = self._response('videos', id=vid, part='statistics', **kwargs)
         
         vid_stats_dict_list = deque()
@@ -488,9 +453,20 @@ class YoutubeCrawler(object):
             
         return vid_stats_dict_list
     
-    
     def video_stats(self, vids):
-        
+        """Video Statistics by video id(s)
+        video ids => split into list that has 50 vids elements as string => Multiprocessing
+        Args:
+             vids(str): Youtube video id(s), no length limit
+        Returns:
+            deque: dictionary array
+        Examples:
+            >>>video_stats(vid=''_S64IMfIod8,_s66WPKCEd8, ...')
+                deque([{'viewCount': '17133', 'likeCount': '83', 'dislikeCount': '0',
+                        'favoriteCount': '0', 'commentCount': '45', 'vid_id': '_S64IMfIod8'},
+                        {'viewCount': '23', 'likeCount': '0', 'dislikeCount': '0',
+                        'favoriteCount': '0', 'commentCount': '0', 'vid_id': '_s66WPKCEd8'}, ...])
+        """
         vid_list = vids.split(',')
         
         vid_split_list = self._split_list(vid_list, 50)
