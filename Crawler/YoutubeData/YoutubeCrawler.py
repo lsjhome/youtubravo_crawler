@@ -471,7 +471,7 @@ class YoutubeCrawler(object):
     
     def video_stats(self, vids):
         """Video Statistics by video id(s)
-        video ids => split into list that has 50 vids elements as string => Multiprocessing
+        video ids => split into list with 50 vids elements as string => Multiprocessing
         Args:
              vids(str): Youtube video id(s), no length limit
         Returns:
@@ -629,6 +629,7 @@ class YoutubeCrawler(object):
     
     def comment(self, vids):
         """Video comments by video id(s)
+        video ids => split into list with 50 vids elements => Multiprocessing
         Args:
              vids(str): Youtube video id(s)
         Returns:
