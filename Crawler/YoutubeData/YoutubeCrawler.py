@@ -79,9 +79,25 @@ class YoutubeCrawler(object):
                     response = self.client.videoCategories().list(
                         **kwargs
                     ).execute()
-
+                    
+                if resource == 'commentThreads':
+                    response = self.client.commentThreads().list(
+                        **kwargs
+                    ).execute()
+                    
+                if resource == 'comments':
+                    response = self.client.comments().list(
+                        **kwargs
+                    ).execute()
+                    
             except HttpError as e:
+                
                 logger.error("%s" % e)
+                
+                if b'disabled comments' in e.content:
+                    
+                    return 
+                    
                 if e.resp.status == 403:
                     self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
                 pass
@@ -461,7 +477,7 @@ class YoutubeCrawler(object):
         Returns:
             deque: dictionary array
         Examples:
-            >>>video_stats(vid=''_S64IMfIod8,_s66WPKCEd8, ...')
+            >>>video_stats(vid='_S64IMfIod8,_s66WPKCEd8, ...')
                 deque([{'viewCount': '17133', 'likeCount': '83', 'dislikeCount': '0',
                         'favoriteCount': '0', 'commentCount': '45', 'vid_id': '_S64IMfIod8'},
                         {'viewCount': '23', 'likeCount': '0', 'dislikeCount': '0',
@@ -485,7 +501,7 @@ class YoutubeCrawler(object):
             outputs.extend(p.get())
         
         return outputs
-
+    
     def _comment(self, vid, **kwargs):
         """Video comments by video id
         Args:
