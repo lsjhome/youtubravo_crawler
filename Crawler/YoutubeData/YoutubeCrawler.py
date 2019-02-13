@@ -485,3 +485,160 @@ class YoutubeCrawler(object):
             outputs.extend(p.get())
         
         return outputs
+
+    def _comment(self, vid, **kwargs):
+        """Video comments by video id
+        Args:
+             vid(str): Youtube video id
+        Returns:
+            deque: dictionary array
+        Examples:
+            >>>_comment(vid='DxfEdD7JpcE')
+                deque([{'author_name': '강성민', 'author_img': 'https://yt3.ggpht.com/-ljpkNvLx6Ng/AAAAAAAAAAI/AAAAAAAAAAA/8dFlKZ5AGWM/s28-c-k-no-mo-rj-c0xffffff/photo.jpg',
+                        'author_id': 'UC963kbRm1ZOm68jDXkZSpDQ','vid_id': 'DxfEdD7JpcE', 'comment': '솔직히 말하면 쯔양님이 이긴거아니냐', 'n_like': 0, 'publishedAt': '2019-02-11T12:00:56.000',
+                        'replyType': False},
+                       {'author_name': '뿌 뿌', 'author_img': 'https://yt3.ggpht.com/-WxJvhks7ZMo/AAAAAAAAAAI/AAAAAAAAAAA/Hts2w2qzm4Q/s28-c-k-no-mo-rj-c0xffffff/photo.jpg',
+                        'author_id': 'UCasr8l5uCtxH6zxspy-cg1Q', 'vid_id': 'DxfEdD7JpcE', 'comment': '아니 걍 노답이다', 'n_like': 1, 'publishedAt': '2019-02-11T02:03:16.000',
+                        'replyType': False},,])
+        """
+        pt = ''
+        dict_comment_array = deque()
+        
+        parent_id_array = deque()
+        
+        key_require = set(['authorDisplayName', 'authorProfileImageUrl', 'authorChannelId', 
+                   'textDisplay', 'likeCount', 'publishedAt'])
+        
+        while True:
+            responses = self._response('commentThreads', videoId=vid, part='snippet', 
+                                       maxResults=100, pageToken=pt, **kwargs)
+            
+            if responses is None or not responses['items']:
+                
+                dict_comment_array.append({'vid_id': vid})
+                return dict_comment_array
+            
+            for item in responses['items']:
+                
+                if item['snippet']['totalReplyCount'] != 0:
+                    parent_id = item['id']
+                    parent_id_array.append(parent_id)
+                
+                snippet = item['snippet']['topLevelComment']['snippet']
+                key_has = set(snippet.keys())
+                empty_keys = key_require - key_has
+                
+                dict_comment = dict()
+                
+                # if there is any empty key
+                if empty_keys:
+                    for key in empty_keys:
+                        dict_comment[key] = None
+                        
+                key_remain = key_require - empty_keys
+                
+                
+                if key_remain:
+
+                    for key in key_remain:
+                    
+                        if key == 'authorChannelId':
+                            dict_comment[key] = snippet['authorChannelId']['value']
+                        
+                        else:
+                            dict_comment[key] = snippet[key]
+                
+                dict_comment['replyType'] = False
+                dict_comment['vid_id'] = vid
+                
+                
+                dict_comment_array.append(dict_comment)
+            
+            if 'nextPageToken' not in responses.keys():
+                
+                break
+            
+            else:
+                pt = responses['nextPageToken']
+            
+            
+        for parent_id in parent_id_array:
+                        
+            pt = ''
+            
+            while True:
+
+                responses = self._response('comments', part='snippet', parentId=parent_id, 
+                                           maxResults=100, pageToken=pt, **kwargs)
+                
+                for item in responses['items']:
+
+                    snippet = item['snippet']
+                    
+                    key_has = set(snippet.keys())
+                    empty_keys = key_require - key_has
+                    
+                    dict_comment = dict()
+
+                    # if there is any empty key
+                    if empty_keys:
+                        for key in empty_keys:
+                            dict_comment[key] = None
+
+                    key_remain = key_require - empty_keys
+
+                    if key_remain:
+
+                        for key in key_remain:
+
+                            if key == 'authorChannelId':
+                                dict_comment[key] = snippet['authorChannelId']['value']
+
+                            else:
+                                dict_comment[key] = snippet[key]
+
+                    dict_comment['replyType'] = True
+                    dict_comment['vid_id'] = vid
+                    
+                    dict_comment_array.append(dict_comment)
+                
+                if 'nextPageToken' not in responses.keys():
+
+                    break
+                
+                else:
+                    pt = responses['nextPageToken']
+                    
+        return dict_comment_array
+    
+    def comment(self, vids):
+        """Video comments by video id(s)
+        Args:
+             vids(str): Youtube video id(s)
+        Returns:
+            deque: dictionary array
+        Examples:
+            >>>comment(vid='___a64QBUoA,___BxqE6JNY')
+               deque([{'vid_id': '___a64QBUoA'},
+                      {'textDisplay': '1', 'publishedAt': '2017-06-14T06:21:40.000Z', 'authorDisplayName': 'Nabila Kastella', 'authorChannelId': 'UCgXL5lO-MLjGXOjZEQvEtoA',
+                       'likeCount': 1, 'authorProfileImageUrl': 'https://yt3.ggpht.com/-2ETp2uqZBtM/AAAAAAAAAAI/AAAAAAAAAAA/oYtuzdqPRC0/s28-c-k-no-mo-rj-c0xffffff/photo.jpg',
+                       'replyType': False, 'vid_id': '___BxqE6JNY'}])
+        """
+        vid_list = vids.split(',')
+        
+        vid_split_list = self._split_list(vid_list, 50)
+        
+        pool = Pool(self.processes)
+        
+        outputs = deque()
+        
+        for vid_split in vid_split_list:
+            
+            results = [pool.apply_async(self._comment, kwds={'vid': vid}) 
+                       for vid in vid_split]
+            
+            for p in results:
+                
+                outputs.extend(p.get())
+                
+        return outputs
