@@ -388,7 +388,7 @@ class YoutubeCrawler(object):
         Returns:
             list: dictionary array
         Examples:
-            >>>video_trend(rc='KR', cid=0, top=True)
+            >>>video_trend(rc='KR', top=True)
             [{'vid_id': videoId, 'vid_published_at': published_at,
               'ch_id': channelId, 'vid_title': vid_title, 'vid_desc': vid_description,
               'vid_th': vid_th, 'ch_title': ch_title, 'vid_tags': vid_tags,
@@ -530,8 +530,13 @@ class YoutubeCrawler(object):
                                        maxResults=100, pageToken=pt, **kwargs)
             
             if responses is None or not responses['items']:
+                dict_comment = dict()
+                dict_comment['vid_id'] = vid
                 
-                dict_comment_array.append({'vid_id': vid})
+                for key in key_require:
+                    dict_comment[key] = None
+                
+                dict_comment_array.append(dict_comment)
                 return dict_comment_array
             
             for item in responses['items']:
