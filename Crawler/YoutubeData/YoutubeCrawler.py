@@ -96,7 +96,11 @@ class YoutubeCrawler(object):
                 
                 if b'disabled comments' in e.content:
                     
-                    return 
+                    return
+                
+                if e.resp.status == 404:
+                    
+                    return
                     
                 if e.resp.status == 403:
                     self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
@@ -529,6 +533,8 @@ class YoutubeCrawler(object):
             responses = self._response('commentThreads', videoId=vid, part='snippet', 
                                        maxResults=100, pageToken=pt, **kwargs)
             
+            
+            
             if responses is None or not responses['items']:
                 dict_comment = dict()
                 dict_comment['vid_id'] = vid
@@ -664,3 +670,4 @@ class YoutubeCrawler(object):
                 outputs.extend(p.get())
                 
         return outputs
+    
