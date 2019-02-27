@@ -94,16 +94,23 @@ class YoutubeCrawler(object):
                 
                 logger.error("%s" % e)
                 
-                if b'disabled comments' in e.content:
-                    
-                    return
-                
+                # parameter cannot found. mainly for removed videos' ids
                 if e.resp.status == 404:
                     
                     return
                     
                 if e.resp.status == 403:
-                    self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
+                    
+                    # comment disabled
+                    if b'disabled comments' in e.content:
+                        
+                        return
+                    
+                    # exceeded quota for day
+                    elif b'quota' in e.content:
+                       
+                        self.client = build("youtube", "v3", developerKey=next(self.api_key_iter))
+                
                 pass
 
         return response
