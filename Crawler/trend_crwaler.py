@@ -27,7 +27,9 @@ def th_url_join(video_list, thumb, t):
     return video_list
     
 def main():
-
+    """
+    First Crawler. Expected to run every 1 hour
+    """
     yc = YoutubeCrawler(api_list, processes=50)
     vmp_list = yc.video_trend(rc='KR', top=True)
     vmp_list_pre = th_url_join(vmp_list, 'vid_th', 'vid_published_at')
