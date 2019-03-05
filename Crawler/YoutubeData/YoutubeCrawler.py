@@ -540,11 +540,12 @@ class YoutubeCrawler(object):
             responses = self._response('commentThreads', videoId=vid, part='snippet', 
                                        maxResults=100, pageToken=pt, **kwargs)
             
-            
+            return responses
             
             if responses is None or not responses['items']:
                 dict_comment = dict()
                 dict_comment['vid_id'] = vid
+                dict_comment['replyType'] = False
                 
                 for key in key_require:
                     dict_comment[key] = None
@@ -661,7 +662,7 @@ class YoutubeCrawler(object):
         """
         vid_list = vids.split(',')
         
-        vid_split_list = self._split_list(vid_list, 50)
+        vid_split_list = self._split_list(vid_list, self.processes)
         
         pool = Pool(self.processes)
         
@@ -677,4 +678,3 @@ class YoutubeCrawler(object):
                 outputs.extend(p.get())
                 
         return outputs
-    
