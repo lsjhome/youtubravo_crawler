@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from utils.mysql import MySQL
-from YoutubeCrawler import YoutubeCrawler
+from YoutubeData.YoutubeCrawler import YoutubeCrawler
 
 def gen_split(gen, n, key):
     
