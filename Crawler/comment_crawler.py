@@ -35,8 +35,8 @@ def vid_id_list(day):
     
     return vid_id_list
     
-if __name__ == '__main__':
-    
+def main():
+        
     insert_vid_comment = 'INSERT IGNORE INTO YOUTUBE.t_vid_comment \
                     (published_at, n_like, aut_id, aut_name, aut_img_url, vid_comment, reply, vid_id) \
                     VALUES (%(publishedAt)s, %(likeCount)s, %(authorChannelId)s, %(authorDisplayName)s, \
@@ -60,8 +60,7 @@ if __name__ == '__main__':
              passwd=os.environ['pw'],
              charset='utf8mb4',
              auto_commit=False)
-    
-    
+        
     vid_id_list_return = vid_id_list(day=10)
     vid_id_list_join = ','.join(vid_id_list_return)
     yc = YoutubeCrawler(api_list, processes=50)
@@ -70,3 +69,7 @@ if __name__ == '__main__':
     conn_02.connect()
     conn_02.executemany(insert_vid_comment, comment_list)
     conn_02.conn.commit()
+
+if __name__ == '__main__':
+    
+    main()
