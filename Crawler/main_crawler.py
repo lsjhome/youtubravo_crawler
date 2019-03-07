@@ -35,9 +35,7 @@ def update_check():
         return {'vid_update':True, 'update_day': update_day}
 
 def youtube_main_crawler(vid_update=True, update_day=2):
-    """
-    Youtube Main Crawler. Expected to run once a day
-    """
+
     ch_id_gen = conn.select('select distinct ch_id from t_vid_trend')
 
     while True:
@@ -105,9 +103,11 @@ def youtube_main_crawler(vid_update=True, update_day=2):
             conn_02.connect()
             conn_02.executemany(insert_vid_desc, ch_vid_dict_list)
             conn_02.conn.commit()
-
-if __name__ == '__main__':
-    
+            
+def main():
+    """
+    Youtube Main Crawler. Expected to run once a day
+    """    
     api_list = [os.environ['API_1'], os.environ['API_2'], os.environ['API_3'],
                 os.environ['API_4'], os.environ['API_5']]
     
@@ -144,4 +144,8 @@ if __name__ == '__main__':
                        VALUES (%(ch_id)s, %(upload_id)s, %(vid_id)s, %(vid_title)s, %(vid_desc)s, %(vid_published_at)s, %(vid_th)s) \
                        '
     check = update_check()
-    youtube_main_crawler(**check)
+    youtube_main_crawler(**check)    
+
+if __name__ == '__main__':
+    
+    main()
