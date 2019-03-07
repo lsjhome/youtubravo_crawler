@@ -25,7 +25,7 @@ Crawler
 # Necessary enviroment variables
 ```
 Google API
-  API_1, API2, API3, API4, API5
+  - API_1, API2, API3, API4, API5
 DB
-  host, db, user, port, pw 
+  - host, db, user, port, pw 
 ```
