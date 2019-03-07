@@ -17,7 +17,7 @@ Crawler
   ├─utils
   │  └─__init__.py
   │  └─mysql.py
-  ├─comment_crawler.py
-  ├─main_crawler.py
-  └─trend_crawler.py
+  ├─comment_crawler.py # Thrid Crawler. Expected to run every three days
+  ├─main_crawler.py    # Second Crawler. Expected to run every day
+  └─trend_crawler.py   # First Crawler. Expected to run every hour
   ```
