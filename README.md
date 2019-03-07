@@ -1,4 +1,4 @@
-# youtubravo_crawler
+# Youtubravo Crawler
 
 Data Crawler for [Youtubravo](http://www.youtubravo.com/bigdata.html)
 
@@ -24,3 +24,11 @@ Crawler
   ├─main_crawler.py    # Second Crawler. Expected to run every day
   └─trend_crawler.py   # First Crawler. Expected to run every hour
   ```
+
+# Necessary enviroment variables
+```
+Google API
+  API_1, API2, API3, API4, API5
+DB
+  host, db, user, port, pw, 
+```
