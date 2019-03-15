@@ -1,8 +1,6 @@
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd
-
 from utils.mysql import MySQL
 from YoutubeData.YoutubeCrawler import YoutubeCrawler
 
